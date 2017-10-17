@@ -15,8 +15,8 @@ class custom:
     @commands.cooldown(1,60,BucketType.user) 
 # Limit how often a command can be used, (num per, seconds, Buckettype.default/user/disckserver/channel)
     @commands.command(pass_context=True, no_pm=True)
-    async def customs(self, ctx, password, gamename : str = None, user : str = None):
-        """This command has several options.\n 1. !customs password - This posts the custom as you hosting with the password you set in the command.\n2. !customs password customname - This posts the custom as you hosting with the password you set and the gamename.\n3. !customs password customname user - This posts the custom as the user you chose (has to be in the server) with the password and gamename you set."""
+    async def customs(self, ctx, password, user : str = None, gamename : str = None):
+        """This command has several options.\n 1. !customs password - This posts the custom as you hosting with the password you set in the command.\n2. !customs password host - This posts the custom as the host you choose with the password you set.\n3. !customs password user customname - This posts the custom as the user you chose (has to be in the server) with the password and gamename you set."""
         server = ctx.message.server
         role = discord.utils.get(server.roles, name="Customs")
         if not user:
