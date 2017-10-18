@@ -49,7 +49,7 @@ class custom:
                 await self.bot.edit_role(server, role, mentionable=True)
                 bmsg = await self.bot.say(role.mention, embed=embed)
                 await self.bot.edit_role(server, role, mentionable=False)
-                await asyncio.sleep(5)
+                await asyncio.sleep(300)
             try:
                 await self.bot.edit_role(server, role, mentionable=True)
                 embed2 = discord.Embed(colour=0x146b85, description="This custom game is full! To get notified for when there are custom games use ?rank customs")
