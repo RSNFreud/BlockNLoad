@@ -14,13 +14,13 @@ class custom:
         self.bot = bot
     @commands.cooldown(1,60,BucketType.user) 
 # Limit how often a command can be used, (num per, seconds, Buckettype.default/user/disckserver/channel)
-    @commands.command(pass_context=True, no_pm=True)
+    @commands.command(aliases=["custom"], pass_context=True, no_pm=True)
     async def customs(self, ctx, password : str = None,  user : str = None, gamename : str = None):
         if password is None:
             embed = discord.Embed(colour=0x146b85, description="This command has several options.\n\n1. **!customs password** - This posts the custom as you hosting with the password you set in the command.\n2. **!customs password user** - This posts the custom with the password you set and the user you chose.\n3. **!customs password user customname**  - This posts the custom as the user you chose (has to be in the server) with the password and gamename you set.")
             msg = await self.bot.say(embed=embed)
             ctx.command.reset_cooldown(ctx)
-            await asyncio.sleep(10)
+            await asyncio.sleep(300)
             try:    
                 await self.bot.delete_message(ctx.message)
                 await self.bot.delete_message(msg)
@@ -49,9 +49,13 @@ class custom:
                 await self.bot.edit_role(server, role, mentionable=True)
                 bmsg = await self.bot.say(role.mention, embed=embed)
                 await self.bot.edit_role(server, role, mentionable=False)
-                await asyncio.sleep(300)
+                await asyncio.sleep(5)
             try:
-                await self.bot.delete_message(bmsg)
+                await self.bot.edit_role(server, role, mentionable=True)
+                embed2 = discord.Embed(colour=0x146b85, description="This custom game is full! To get notified for when there are custom games use ?rank customs")
+                await self.bot.edit_message(bmsg, role.mention, embed=embed2)
+                await self.bot.edit_role(server, role, mentionable=False)
+#                await self.bot.delete_message(bmsg)
             except discord.errors.NotFound:
                 pass
             except UnboundLocalError:
