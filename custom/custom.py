@@ -50,7 +50,8 @@ class custom:
                 await self.bot.edit_role(server, role, mentionable=False)
                 channel = discord.utils.get(server.channels, name="modlog")
                 currentchan = ctx.message.channel
-                await self.bot.send_message(channel, user.mention + " has executed the Customs command in " + currentchan.mention)
+                author = ctx.message.author
+                await self.bot.send_message(channel, author.mention + " has executed the Customs command in " + currentchan.mention)
                 await asyncio.sleep(300)
             try:
                 await self.bot.edit_role(server, role, mentionable=True)
