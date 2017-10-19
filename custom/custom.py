@@ -20,7 +20,7 @@ class custom:
             embed = discord.Embed(colour=0x146b85, description="This command has several options.\n\n1. **!customs password** - This posts the custom as you hosting with the password you set in the command.\n2. **!customs password user** - This posts the custom with the password you set and the user you chose.\n3. **!customs password user customname**  - This posts the custom as the user you chose (has to be in the server) with the password and gamename you set.")
             msg = await self.bot.say(embed=embed)
             ctx.command.reset_cooldown(ctx)
-            await asyncio.sleep(300)
+            await asyncio.sleep(15)
             try:    
                 await self.bot.delete_message(ctx.message)
                 await self.bot.delete_message(msg)
@@ -45,10 +45,11 @@ class custom:
             except discord.errors.Forbidden:
                 await self.bot.say("Make sure I have **Manage Roles** permissions and my role is higher than the custom role!")
             else:
-                await self.bot.delete_message(ctx.message)
                 await self.bot.edit_role(server, role, mentionable=True)
                 bmsg = await self.bot.say(role.mention, embed=embed)
                 await self.bot.edit_role(server, role, mentionable=False)
+                await asyncio.sleep(2)
+                await self.bot.delete_message(ctx.message)
                 await asyncio.sleep(300)
             try:
                 await self.bot.edit_role(server, role, mentionable=True)
