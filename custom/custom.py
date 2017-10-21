@@ -39,7 +39,7 @@ class custom:
                 gamename = "a custom"
             embed = discord.Embed(colour=0x146b85, description="**{}** is hosting {}. The password is **{}**. To randomly pick a map use !map".format(user, gamename, password))  # Can use discord.Colour()
             embed.title = "New Custom Game!"
-            embed.set_footer(text="To be notified or to not be notified for customs use ?rank Customs")
+            embed.set_footer(text="To enable/disable customs tagging use ?rank Customs")
             try:
                 await self.bot.edit_role(server, role)
             except AttributeError: 
@@ -51,6 +51,7 @@ class custom:
                 bmsg = await self.bot.say(role.mention, embed=embed)
                 await self.bot.edit_role(server, role, mentionable=False)
                 channel = discord.utils.get(server.channels, name="modlog")
+                await self.bot.delete_message(ctx.message)
                 currentchan = ctx.message.channel
                 author = ctx.message.author
                 report = "*{} has executed the Customs command with the message:*".format(author)
