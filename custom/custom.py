@@ -6,6 +6,8 @@ import asyncio
 import discord
 import random
 from discord.ext.commands.cooldowns import BucketType
+from datetime import datetime
+now = datetime.now()
 
 class custom:
     """Custom game caller"""
@@ -35,7 +37,7 @@ class custom:
                 user = ctx.message.author 
             if gamename is None:
                 gamename = "a custom"
-            embed = discord.Embed(colour=0x146b85, description="**%s** is hosting %s. The password is **%s**. To randomly pick a map use !map" % (user, gamename, password))  # Can use discord.Colour()
+            embed = discord.Embed(colour=0x146b85, description="**{}** is hosting {}. The password is **{}**. To randomly pick a map use !map".format(user, gamename, password))  # Can use discord.Colour()
             embed.title = "New Custom Game!"
             embed.set_footer(text="To be notified or to not be notified for customs use ?rank Customs")
             try:
@@ -51,7 +53,8 @@ class custom:
                 channel = discord.utils.get(server.channels, name="modlog")
                 currentchan = ctx.message.channel
                 author = ctx.message.author
-                await self.bot.send_message(channel, author.mention + " has executed the Customs command in " + currentchan.mention)
+                report = "*{} has executed the Customs command with the message:*".format(author)
+                await self.bot.send_message(channel, report, embed = embed)
                 await asyncio.sleep(300)
             try:
                 await self.bot.edit_role(server, role, mentionable=True)
