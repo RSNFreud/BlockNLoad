@@ -880,7 +880,9 @@ class Warn:
 
             if member.id not in self.handles[sid]:
                 self.schedule_unpunish(duration, member, reason)
-
+    async def WarnDeny
+        if #role is mod role then check that the reaction is correct and run remove command.
+                
     #async def on_command(self, command, ctx):
      #   if ctx.cog is self:
      #       self.analytics.command(ctx)
@@ -927,3 +929,6 @@ def setup(bot):
     check_folder()
     check_file()
     bot.add_cog(Warn(bot))
+    bot.add_listener(n.WarnDeny, 'on_reaction_add')
+    
+    
