@@ -2,7 +2,7 @@
 
 # Credits go to Twentysix26 for modlog
 # https://github.com/Twentysix26/Red-DiscordBot/blob/develop/cogs/mod.py
-#bot.change_nickname(user, display_name + "ðŸ’©")
+#bot.change_nickname(user, display_name + "Ã°Å¸â€™Â©")
 import discord
 import os
 import shutil
@@ -41,10 +41,10 @@ UNIT_SUF_TABLE = {'sec': (1, ''),
                   'hr': (60 * 60, 's'),
                   'day': (60 * 60 * 24, 's')
                   }
-DEFAULT_TIMEOUT = '1m'
+DEFAULT_TIMEOUT = '10m'
 PURGE_MESSAGES = 1  # for cpunish
 PATH = 'data/account/'
-JSON = PATH + 'warnsettings.json'
+JSON = PATH + 'mutedtime.json'
 DEFAULT_ROLE_NAME = 'Muted'
 
 
@@ -99,15 +99,30 @@ class Warn:
         self.riceCog = dataIO.load_json(self.profile)
         self.warning_settings = "data/account/warning_settings.json"
         self.riceCog2 = dataIO.load_json(self.warning_settings)
+        self.warninglist = "data/account/warninglist.json"
+        self.warnings = dataIO.load_json(self.warninglist)
         if not self.bot.get_cog("Mod"):
             print("You need the Mod cog to run this cog effectively!")
 
     def save(self):
         dataIO.save_json(JSON, self.json)
 
+    def data_check(self, ctx=None, user=None, server=None):
+        if ctx:
+            sid = ctx.message.server.id
+            uid = ctx.message.author.id
+        else:
+            sid = server.id
+            uid = user.id
+        if sid not in self.riceCog:
+            self.riceCog[sid] = {}
+        if uid not in self.riceCog[sid]:
+            self.riceCog[sid][uid] = {"Count": 0}
+
 
     @commands.group(no_pm=True, pass_context=True, name='warnset')
     async def _warnset(self, ctx):
+        self.data_check(ctx)
         if ctx.message.server.id not in self.riceCog2:
             self.riceCog2[ctx.message.server.id] = {}
         if ctx.invoked_subcommand is None:
@@ -138,6 +153,7 @@ class Warn:
     async def pm(self, ctx):
         """Enable/disable PM warn"""
         server = ctx.message.server
+        self.data_check(ctx)
         if 'pm_warn' not in self.riceCog[server.id]:
             self.riceCog[server.id]['pm_warn'] = False
 
@@ -152,6 +168,7 @@ class Warn:
     @_warnset.command(no_pm=True, pass_context=True, manage_server=True)
     async def poop(self, ctx):
         """Enable/disable poop emojis per warning."""
+        self.data_check(ctx)
         server = ctx.message.server
         true_msg = "Poop emojis per warning enabled."
         false_msg = "Poop emojis per warning disabled."
@@ -173,6 +190,7 @@ class Warn:
     @_warnset.command(no_pm=True, pass_context=True)
     @checks.admin_or_permissions(ban_members=True, manage_server=True)
     async def max(self, ctx, limit: int):
+        self.data_check(ctx)
         server = ctx.message.server
 
         self.riceCog2[server.id]["max"] = limit
@@ -183,6 +201,7 @@ class Warn:
     @_warnset.command(no_pm=True, pass_context=True)
     @checks.admin_or_permissions(ban_members=True, manage_server=True)
     async def ban(self, ctx, *, msg=None):
+        self.data_check(ctx)
         """Set the ban message.
 
         To get a full list of information, use **warnset message** without any parameters."""
@@ -201,6 +220,7 @@ class Warn:
     @_warnset.command(no_pm=True, pass_context=True)
     @checks.admin_or_permissions(ban_members=True, manage_server=True)
     async def reset(self, ctx):
+        self.data_check(ctx)
         server = ctx.message.server
         author = ctx.message.author
         channel = ctx.message.channel
@@ -221,6 +241,7 @@ class Warn:
     @_warnset.command(no_pm=True, pass_context=True)
     @checks.admin_or_permissions(ban_members=True, manage_server=True)
     async def message(self, ctx, *, msg=None):
+        self.data_check(ctx)
         """Set the warning message
 
         user.mention - mentions the user
@@ -276,11 +297,12 @@ class Warn:
         return msg
 
     @commands.command(no_pm=True, pass_context=True)
-    @checks.admin_or_permissions(ban_members=True)
+    @checks.mod()
     async def warn(self, ctx, user: discord.Member, *, reason: str=None):
         """Warns the user - At 3 warnings the user gets banned
 
         Thank you, 26, for the modlog"""
+        self.data_check(ctx)
         server = ctx.message.server
         author = ctx.message.author
         channel = ctx.message.channel
@@ -383,8 +405,14 @@ class Warn:
                 user=user
                 reason=reason
                 ID = uuid.uuid4()
+                countnum = "{}/3".format(count)
                 channel = discord.utils.get(server.channels, name="warning_review")
-                embed =  discord.Embed(title="User Warned:", description="**Case ID:** {}\n**Moderator:** {}\n**User:** {}\n**Reason:** {}\n**Warning Number:** {}/3".format(ID, mod, user, reason, count), colour=0xA00000)
+                embed=discord.Embed(title="User Warned:", color=0xA00000)
+                embed.add_field(name="Case ID:", value=ID, inline=False)
+                embed.add_field(name="Moderator:", value=mod, inline=False)
+                embed.add_field(name="User:", value="{0} ({0.id})".format(user), inline=False)
+                embed.add_field(name="Reason:", value=reason, inline=False)
+                embed.add_field(name="Warning Number:", value=countnum, inline=False)
                 react = await self.bot.send_message(channel, embed=embed)
                 await self.bot.add_reaction(react, "\U0001f44d")
                 await self.bot.add_reaction(react, "\U0001f44e")
@@ -396,9 +424,15 @@ class Warn:
                 mod=author
                 user=user
                 reason=reason
+                countnum = "{}/3".format(count)
                 ID = uuid.uuid4()
                 channel = discord.utils.get(server.channels, name="warning_review")
-                embed =  discord.Embed(title="User Warned:", description="**Case ID:** {}\n**Moderator:** {}\n**User:** {}\n**Reason:** {}\n**Warning Number:** {}/3".format(ID, mod, user, reason, count), colour=0xA00000)
+                embed=discord.Embed(title="User Warned:", color=0xA00000)
+                embed.add_field(name="Case ID:", value=ID, inline=False)
+                embed.add_field(name="Moderator:", value=mod, inline=False)
+                embed.add_field(name="User:", value="{0} ({0.id})".format(user), inline=False)
+                embed.add_field(name="Reason:", value=reason, inline=False)
+                embed.add_field(name="Warning Number:", value=countnum, inline=False)
                 react = await self.bot.send_message(channel, embed=embed)
                 await self.bot.add_reaction(react, "\U0001f44d")
                 await self.bot.add_reaction(react, "\U0001f44e")
@@ -429,8 +463,14 @@ class Warn:
                 user=user
                 reason=reason
                 ID = uuid.uuid4()
+                countnum = "{}/3".format(count)
                 channel = discord.utils.get(server.channels, name="warning_review")
-                embed =  discord.Embed(title="User Warned:", description="**Case ID:** {}\n**Moderator:** {}\n**User:** {}\n**Reason:** {}\n**Warning Number:** {}/3".format(ID, mod, user, reason, count), colour=0xA00000)
+                embed=discord.Embed(title="User Warned:", color=0xA00000)
+                embed.add_field(name="Case ID:", value=ID, inline=False)
+                embed.add_field(name="Moderator:", value=mod, inline=False)
+                embed.add_field(name="User:", value="{0} ({0.id})".format(user), inline=False)
+                embed.add_field(name="Reason:", value=reason, inline=False)
+                embed.add_field(name="Warning Number:", value=countnum, inline=False)
                 react = await self.bot.send_message(channel, embed=embed)
                 await self.bot.add_reaction(react, "\U0001f44d")
                 await self.bot.add_reaction(react, "\U0001f44e")
@@ -441,8 +481,14 @@ class Warn:
                 user=user
                 reason=reason
                 ID = uuid.uuid4()
+                countnum = "{}/3".format(count)
                 channel = discord.utils.get(server.channels, name="warning_review")
-                embed =  discord.Embed(title="User Warned:", description="**Case ID:** {}\n**Moderator:** {}\n**User:** {}\n**Reason:** {}\n**Warning Number:** {}/3".format(ID, mod, user, reason, count), colour=0xA00000)
+                embed=discord.Embed(title="User Warned:", color=0xA00000)
+                embed.add_field(name="Case ID:", value=ID, inline=False)
+                embed.add_field(name="Moderator:", value=mod, inline=False)
+                embed.add_field(name="User:", value="{0} ({0.id})".format(user), inline=False)
+                embed.add_field(name="Reason:", value=reason, inline=False)
+                embed.add_field(name="Warning Number:", value=countnum, inline=False)
                 react = await self.bot.send_message(channel, embed=embed)
                 await self.bot.add_reaction(react, "\U0001f44d")
                 await self.bot.add_reaction(react, "\U0001f44e")
@@ -450,6 +496,7 @@ class Warn:
             self.riceCog[server.id][user.id].update({"Count": count})
             dataIO.save_json(self.profile,
                              self.riceCog)
+
             log = None
 
 
@@ -472,8 +519,13 @@ class Warn:
                 mod=author
                 user=user
                 reason=reason
+                ID = uuid.uuid4()
                 channel = discord.utils.get(server.channels, name="warning_review")
-                embed = discord.Embed(title="User Banned:", description="**Moderator:** {}\n**User:** {}\n**Reason:** {}\n*As the user has reached 3 warnings they have been banned from the server.*".format(mod, user, reason, count), colour=0xA00000)
+                embed=discord.Embed(title="User Banned:", description="*As the user has reached 3 warnings they have been banned from the server.*", color=0xA00000)
+                embed.add_field(name="Case ID:", value=ID, inline=False)
+                embed.add_field(name="Moderator:", value=mod, inline=False)
+                embed.add_field(name="User:", value="{0} ({0.id})".format(user), inline=False)
+                embed.add_field(name="Reason:", value=reason, inline=False)
                 react = await self.bot.send_message(channel, embed=embed)
                 await self.bot.add_reaction(react, "\U0001f44d")
                 await self.bot.add_reaction(react, "\U0001f44e")
@@ -483,8 +535,13 @@ class Warn:
                 mod=author
                 user=user
                 reason=reason
+                ID = uuid.uuid4()
                 channel = discord.utils.get(server.channels, name="warning_review")
-                embed = discord.Embed(title="User Banned:", description="**Moderator:** {}\n**User:** {}\n**Reason:** {}\n*As the user has reached 3 warnings they have been banned from the server.*".format(mod, user, reason, count), colour=0xA00000)
+                embed=discord.Embed(title="User Banned:", description="*As the user has reached 3 warnings they have been banned from the server.*", color=0xA00000)
+                embed.add_field(name="Case ID:", value=ID, inline=False)
+                embed.add_field(name="Moderator:", value=mod, inline=False)
+                embed.add_field(name="User:", value="{0} ({0.id})".format(user), inline=False)
+                embed.add_field(name="Reason:", value=reason, inline=False)
                 react = await self.bot.send_message(channel, embed=embed)
                 await self.bot.add_reaction(react, "\U0001f44d")
                 await self.bot.add_reaction(react, "\U0001f44e")
@@ -539,8 +596,9 @@ class Warn:
             await self.bot.ban(user)
 
     @commands.command(no_pm=True, pass_context=True)
-    @checks.admin_or_permissions(ban_members=True)
+    @checks.mod()
     async def remove(self, ctx, user: discord.Member):
+        self.data_check(ctx)
         author = ctx.message.author
         server = author.server
         colour = server.me.colour
@@ -596,8 +654,9 @@ class Warn:
             await self.bot.delete_message(ctx.message)       
 
     @commands.command(no_pm=True, pass_context=True)
-    @checks.admin_or_permissions(ban_members=True)
+    @checks.mod()
     async def clean(self, ctx, user: discord.Member):
+        self.data_check(ctx)
         author = ctx.message.author
         server = author.server
         colour = server.me.colour
@@ -856,9 +915,9 @@ class Warn:
             return
         role = await self.get_role(before.server)
         if role and role in before.roles and role not in after.roles:
-            msg = 'Your punishment in %s was ended early by a moderator/admin.' % before.server.name
-            if self.json[sid][before.id]:
-                msg += '\nReason was: ' + self.json[sid][before.id]
+            #msg = 'Your punishment in %s was ended early by a moderator/admin.' % before.server.name
+            #if self.json[sid][before.id]:
+                #msg += '\nReason was: ' + self.json[sid][before.id]
 
             #await self.bot.send_message(after, msg)
             self._unpunish_data(after)
@@ -880,8 +939,144 @@ class Warn:
 
             if member.id not in self.handles[sid]:
                 self.schedule_unpunish(duration, member, reason)
+        if 'poop' in self.riceCog2[sid]:
+            if self.riceCog2[sid]['poop'] == True:
+                if member.id not in self.riceCog:
+                    count = self.riceCog[sid][member.id]["Count"]
+                    poops = count * "\U0001f528"
+                    role_name = "Warning {}".format(poops)
+                    is_there = False
+                    colour = 0xbc7642
+                    for role in member.server.roles:
+                        if role.name == role_name:
+                            poop_role = role
+                            is_there = True
+                    if not is_there:
+                        poop_role = await self.bot.create_role(server)
+                        await self.bot.edit_role(role=poop_role,
+                                                 name=role_name,
+                                                 server=server)
+                    try:
+                        await self.bot.add_roles(member,
+                                                 poop_role)
+                    except discord.errors.Forbidden:
+                        await self.bot.say("No permission to add roles")
+                else:
+                    pass
 
-    #async def on_command(self, command, ctx):
+    async def on_reaction_add (self, reaction, user):
+        channel = reaction.message.channel
+        server = reaction.message.server
+        reactor = user
+        msg = reaction.message
+        embed = msg.embeds[0]
+        k = {'user':user, 'server':reaction.message.server}
+        self.data_check(**k)
+        role_needed = discord.utils.get(server.roles, name="Freud")
+        if not role_needed in reactor.roles:
+            return
+        if 'title' not in embed:
+            return
+        else:
+            title = embed['title']
+            user_field = [f for f in embed['fields'] if f['name'] == 'User:'][0]
+            user_id = user_field['value'].split('(')[-1][:-1]
+            user = discord.utils.get(msg.server.members, id=user_id)
+            if reaction.emoji == '\U0001f528' and reaction.message.channel.name == "warning_review":
+
+#command
+                can_role = channel.permissions_for(server.me).manage_roles
+                count = self.riceCog[server.id][user.id]["Count"]
+
+                if server.id not in self.riceCog:
+                    self.riceCog[server.id] = {}
+                    dataIO.save_json(self.profile,
+                                     self.riceCog)
+                    if user.id not in self.riceCog[server.id]:
+                        self.riceCog[server.id][user.id] = {}
+                        dataIO.save_json(self.profile,
+                                         self.riceCog)
+                    else:
+                        pass
+                else:
+                    if user.id not in self.riceCog[server.id]:
+                        self.riceCog[server.id][user.id] = {}
+                        dataIO.save_json(self.profile,
+                                         self.riceCog)
+                    else:
+                        pass
+                channel = discord.utils.get(server.channels, name="warning_review")
+                if 'poop' in self.riceCog2[server.id] and can_role:
+                    if self.riceCog2[server.id]['poop'] == True:
+                        try:
+                            role = role = list(filter(lambda r: r.name.startswith('Warning \U0001f528'), server.roles))
+                            await self.bot.remove_roles(user, *role)
+                        except discord.errors.Forbidden:
+                            await self.bot.send_message(channel, "No permission to add roles")
+
+                if "Count" in self.riceCog[server.id][user.id]:
+                    count = self.riceCog[server.id][user.id]["Count"]
+                else:
+                    count = 0
+
+                if count != 0:
+                    #msg = await self.bot.send_message(channel, "A warning for {} has been removed!".format(user))
+                    await self.bot.send_message(user, "Howdy!\nThis is to let you know that your warning on the BNL Server has been reviewed and revoked!\n\n**The BNL Discord Staff**")
+                    count -= 1
+                    self.riceCog[server.id][user.id].update({"Count": count})
+                    dataIO.save_json(self.profile,
+                                     self.riceCog)
+                    msg = reaction.message
+                    newembed = discord.Embed(title="Warning Revoked:", color=0xA00000, description =  "The warning for {} has been revoked.".format(user))
+                    newmsg = " "
+                    await self.bot.edit_message(msg, newmsg, embed=newembed)    
+                    await self.bot.clear_reactions(msg)
+                else:
+                    msg = await self.bot.send_message(channel, "There are no warnings to clear for the selected case.")
+            if reaction.emoji == '\U0001f4ce' and reaction.message.channel.name == "warning_review":
+                dmchannel = await self.bot.start_private_message(reactor)
+                await self.bot.send_message(dmchannel, "Please send an attachment")
+                msg = await self.bot.wait_for_message(channel=dmchannel, author=reactor)
+                if msg.attachments:
+                    attachmentlist = msg.attachments[0]
+                    attachment = attachmentlist['url']
+                    attach = "**Attachments:**\n\n" + attachment + "\n\n"
+                    attachnew = reaction.message.content + "\n\n" + attachment
+                    if "Attachments:" in reaction.message.content:
+                        await self.bot.send_message(dmchannel, "Thanks!")
+                        await self.bot.edit_message(reaction.message, attachnew) 
+                        await self.bot.remove_reaction(reaction.message, emoji = '\U0001f4ce', member = reactor)
+                                
+                        #await self.bot.send_message(dmchannel, "There is already an attachment!")
+                    else:
+                        await self.bot.send_message(dmchannel, "Thanks!")
+                        await self.bot.edit_message(reaction.message, attach)
+                        await self.bot.remove_reaction(reaction.message, emoji = '\U0001f4ce', member = reactor)
+                    #await self.bot.send_message(channel, attachment)
+                elif "discord" in msg.content:
+                    attach = "**Attachments:**\n\n" + msg.content + "\n\n"
+                    if "Attachments:" in reaction.message.content:
+                        attachnew = reaction.message.content + "\n\n" + msg.content
+                        await self.bot.send_message(dmchannel, "Thanks!")
+                        await self.bot.edit_message(reaction.message, attachnew)
+                        await self.bot.remove_reaction(reaction.message, emoji = '\U0001f4ce', member = reactor)
+                    else:
+                        attach = "**Attachments:**\n\n" + msg.content + "\n\n"
+                        await self.bot.edit_message(reaction.message, attach)
+                        await self.bot.send_message(dmchannel, "Thanks!")
+                        await self.bot.remove_reaction(reaction.message, emoji = '\U0001f4ce', member = reactor)
+                else:
+                    await self.bot.send_message(dmchannel, "**Error:** Please make sure to attach an image!")
+                    await self.bot.remove_reaction(reaction.message, emoji = '\U0001f4ce', member = reactor)
+            else:
+                return
+                #print ("testing: ", username)
+                #run remove command
+                #self.invoke(self, command : remove, user)
+                #await ctx.invoke (remove, user)
+                #await self.remove(self, ctx, user)
+  
+   #async def on_command(self, command, ctx):
      #   if ctx.cog is self:
      #       self.analytics.command(ctx)
 def compat_load(path):
@@ -893,6 +1088,7 @@ def compat_load(path):
             by = pdata.pop('givenby', None)  # able to read Kownlin json
             by = by if by else pdata.pop('by', None)
             pdata['by'] = by
+            pdata['until'] = pdata.pop('until', None)
             pdata['until'] = pdata.pop('until', None)
             pdata['reason'] = pdata.pop('reason', None)
     return data
@@ -911,6 +1107,7 @@ def check_file():
     data = {}
     f = "data/account/warnings.json"
     g = "data/account/warning_settings.json"
+    c = "data/account/warninglist.json"
     if not dataIO.is_valid_json(f):
         print("Creating data/account/warnings.json")
         dataIO.save_json(f,
@@ -919,6 +1116,10 @@ def check_file():
         print("Creating data/account/warning_settings.json")
         dataIO.save_json(g,
                          data)
+    if not dataIO.is_valid_json(c):
+        print("Creating data/account/warninglist.json")
+        dataIO.save_json(c,
+                         data)
     if not dataIO.is_valid_json(JSON):
         print('Creating empty %s' % JSON)
         dataIO.save_json(JSON, {})
@@ -926,4 +1127,6 @@ def check_file():
 def setup(bot):
     check_folder()
     check_file()
+    n = Warn(bot)
     bot.add_cog(Warn(bot))
+    #bot.add_listener(n.WarnDeny, 'on_reaction_add')
