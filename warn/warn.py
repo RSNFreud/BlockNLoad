@@ -2,7 +2,7 @@
 
 # Credits go to Twentysix26 for modlog
 # https://github.com/Twentysix26/Red-DiscordBot/blob/develop/cogs/mod.py
-#bot.change_nickname(user, display_name + "Ã°Å¸â€™Â©")
+#bot.change_nickname(user, display_name + "ðŸ’©")
 import discord
 import os
 import shutil
@@ -101,6 +101,13 @@ class Warn:
         self.riceCog2 = dataIO.load_json(self.warning_settings)
         self.warninglist = "data/account/warninglist.json"
         self.warnings = dataIO.load_json(self.warninglist)
+        for x in self.bot.servers:
+            try:
+                self.warnings[x.id]
+            except:
+
+                self.warnings[x.id]={
+                    }
         if not self.bot.get_cog("Mod"):
             print("You need the Mod cog to run this cog effectively!")
 
@@ -709,6 +716,38 @@ class Warn:
             await asyncio.sleep(15)
             await self.bot.delete_message(msg)
             await self.bot.delete_message(ctx.message)
+    @commands.command(no_pm=True, pass_context=True)
+    @checks.mod()
+    async def deny(self, ctx, user: discord.Member, reason: str=None):
+        """Denies a user from the #bnl_discussion channel"""
+        self.data_check(ctx)
+        if reason is None:
+            msg = await self.bot.say("Please enter a reason for the warning!")
+            await asyncio.sleep(5)
+            await self.bot.delete_message(msg)
+            return
+        server = ctx.message.server
+        nobnl = discord.utils.get(server.roles, name = "NoBNL")
+        mod = ctx.message.author
+        await self.bot.delete_message(ctx.message)
+        await self.bot.add_roles(user, nobnl)
+        dmuser = await self.bot.start_private_message(user)
+        await self.bot.send_message(dmuser, "Howdy!\n This is to let you know that you have been denied access to the #bnl_discussion channel for the reason:\n\n```{}``` \nPlease speak to a member of staff if you have an issue.".format(reason))
+        channel = discord.utils.get(server.channels, name = "warning_review")
+        user=user
+        reason=reason
+        ID = uuid.uuid4()
+        embed=discord.Embed(title="User Denied:", color=0xA00000)
+        embed.add_field(name="Case ID:", value=ID, inline=False)
+        embed.add_field(name="Moderator:", value=mod, inline=False)
+        embed.add_field(name="User:", value="{0} ({0.id})".format(user), inline=False)
+        embed.add_field(name="Reason:", value=reason, inline=False)
+        react = await self.bot.send_message(channel, embed=embed)
+        await self.bot.add_reaction(react, "\U0001f44d")
+        await self.bot.add_reaction(react, "\U0001f44e")
+        await self.bot.add_reaction(react, "\U0001f937")
+        self.warnings[server.id][user.id] = {}
+        dataIO.save_json(self.warninglist, self.warnings)
 
 # clear role
     async def get_role(self, server, quiet=False, create=False):
@@ -926,24 +965,13 @@ class Warn:
         """Restore punishment if punished user leaves/rejoins"""
         sid = member.server.id
         role = await self.get_role(member.server)
-        if not role or not (sid in self.json and member.id in self.json[sid]):
-            return
 
-        duration = self.json[sid][member.id]['until'] - time.time()
-        if duration > 0:
-            await self.bot.add_roles(member, role)
 
-            reason = 'Punishment re-added on rejoin. '
-            if self.json[sid][member.id]['reason']:
-                reason += self.json[sid][member.id]['reason']
-
-            if member.id not in self.handles[sid]:
-                self.schedule_unpunish(duration, member, reason)
         if 'poop' in self.riceCog2[sid]:
             if self.riceCog2[sid]['poop'] == True:
-                if member.id not in self.riceCog:
+                if member.id in self.riceCog[sid]:
                     count = self.riceCog[sid][member.id]["Count"]
-                    poops = count * "\U0001f528"
+                    poops = "\U0001f528" * count
                     role_name = "Warning {}".format(poops)
                     is_there = False
                     colour = 0xbc7642
@@ -952,17 +980,38 @@ class Warn:
                             poop_role = role
                             is_there = True
                     if not is_there:
+                        server = member.server
                         poop_role = await self.bot.create_role(server)
                         await self.bot.edit_role(role=poop_role,
                                                  name=role_name,
                                                  server=server)
-                    try:
-                        await self.bot.add_roles(member,
-                                                 poop_role)
-                    except discord.errors.Forbidden:
-                        await self.bot.say("No permission to add roles")
+                    if count >= 1:
+                        try:
+                            await self.bot.add_roles(member,
+                                                     poop_role)
+                        except discord.errors.Forbidden:
+                            await self.bot.say("No permission to add roles")
                 else:
                     pass
+        if member.id in self.warnings[member.server.id]:
+            role = discord.utils.get(member.server.roles, name="NoBNL")
+            await self.bot.add_roles(member, role)
+            
+        if not role or not (sid in self.json and member.id in self.json[sid]):
+            return
+
+        duration = self.json[sid][member.id]['until'] - time.time()
+        if duration > 0:
+            role = discord.utils.get(member.server.roles, name="Muted")
+            await self.bot.add_roles(member, role)
+
+            reason = 'Punishment re-added on rejoin. '
+            if self.json[sid][member.id]['reason']:
+                reason += self.json[sid][member.id]['reason']
+
+            if member.id not in self.handles[sid]:
+                self.schedule_unpunish(duration, member, reason)
+        
 
     async def on_reaction_add (self, reaction, user):
         channel = reaction.message.channel
@@ -976,6 +1025,8 @@ class Warn:
         if not role_needed in reactor.roles:
             return
         if 'title' not in embed:
+            return
+        if "Denied" in embed['title']:
             return
         else:
             title = embed['title']
